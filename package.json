@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "node_modules/next/dist/bin/next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "PORT=7860, node_modules/next/dist/bin/next dev",
+    "build": "PORT=7860, next build",
+    "start": "PORT=7860, next start",
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
