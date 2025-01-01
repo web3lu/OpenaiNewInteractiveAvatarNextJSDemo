@@ -1,6 +1,6 @@
 # HeyGen Interactive Avatar NextJS Demo
 
-![HeyGen Interactive Avatar NextJS Demo Screenshot](./public/demo.png)
+![HeyGen Interactive Avatar NextJS Demo Screenshot](./public/heygen-avatar.png)
 
 This is a sample project and was bootstrapped using [NextJS](https://nextjs.org/).
 Feel free to play around with the existing code and please leave any feedback for the SDK [here](https://github.com/HeyGen-Official/StreamingAvatarSDK/discussions).
