@@ -8,7 +8,7 @@ The upper menu is defined with the following scripts :
 * components/icon.tsx
 * public/heygen-log.png
 
-The main content is provided by the [StreamingAvatar script](https://github.com/HeyGen-Official/StreamingAvatar)
+The main content is partly provided by the [StreamingAvatar script](https://github.com/HeyGen-Official/StreamingAvatar)
 
 ![Heygen Streaming Avatar](./public/StreamingAvatar.png)
 
