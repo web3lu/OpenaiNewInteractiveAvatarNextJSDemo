@@ -30,9 +30,9 @@ export default function InteractiveAvatar() {
   const [isLoadingRepeat, setIsLoadingRepeat] = useState(false);
   const [stream, setStream] = useState<MediaStream>();
   const [debug, setDebug] = useState<string>();
-  const [knowledgeId, setKnowledgeId] = useState<string>("");
-  const [avatarId, setAvatarId] = useState<string>("");
-  const [language, setLanguage] = useState<string>('en');
+  const [knowledgeId, setKnowledgeId] = useState<string>("ca8bd42a1c2945418a2f74566f851ea7");
+  const [avatarId, setAvatarId] = useState<string>("Anna_public_3_20240108");
+  const [language, setLanguage] = useState<string>("fr");
 
   const [data, setData] = useState<StartAvatarResponse>();
   const [text, setText] = useState<string>("");
