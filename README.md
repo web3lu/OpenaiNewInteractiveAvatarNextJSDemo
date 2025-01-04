@@ -1,4 +1,10 @@
-# HeyGen Interactive Avatar NextJS Demo
+# OpenAI HeyGen Interactive Avatar NextJS Demo
+
+Summary of Changes:
+* API Integration: The fetchOpenAIKey and speakWithOpenAI functions handle API interactions.
+* Speech Response: The handleSpeak function now uses OpenAI's API to generate and play audio responses.
+* UI Adjustments: Minor adjustments to indicate loading and response states.
+This version simplifies speech synthesis by leveraging OpenAI's Assistant API.
 
 ![HeyGen Interactive Avatar NextJS Demo Screenshot](./public/heygen-avatar.png)
 
