@@ -16,23 +16,13 @@ export default function InteractiveAvatar() {
 
   const previousText = usePrevious(text);
 
-  // Fetch OpenAI API Key
-  async function fetchOpenAIKey() {
-    try {
-      const response = await fetch("/api/get-openai-key", {
-        method: "POST",
-      });
-      const apiKey = await response.text();
-      return apiKey;
-    } catch (error) {
-      console.error("Error fetching OpenAI API key:", error);
-      return "";
-    }
-  }
-
+  const openai = new OpenAI({
+  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
+  });
+  
   // Speak using OpenAI's Assistant API
   async function speakWithOpenAI(inputText: string) {
-    const apiKey = await fetchOpenAIKey();
     if (!apiKey) {
       setDebug("OpenAI API key not available");
       return;
