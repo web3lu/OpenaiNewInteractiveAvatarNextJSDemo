@@ -1,232 +1,102 @@
-import type { StartAvatarResponse } from "@heygen/streaming-avatar";
-
-import StreamingAvatar, {
-  AvatarQuality,
-  StreamingEvents, TaskMode, TaskType, VoiceEmotion,
-} from "@heygen/streaming-avatar";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  Divider,
-  Input,
-  Select,
-  SelectItem,
-  Spinner,
-  Chip,
-  Tabs,
-  Tab,
-} from "@nextui-org/react";
 import { useEffect, useRef, useState } from "react";
+import { Button, Card, CardBody, CardFooter, Divider, Input, Select, SelectItem, Spinner, Chip, Tabs, Tab } from "@nextui-org/react";
 import { useMemoizedFn, usePrevious } from "ahooks";
-
 import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
-
-import {AVATARS, STT_LANGUAGE_LIST} from "@/app/lib/constants";
+import { AVATARS, STT_LANGUAGE_LIST } from "@/app/lib/constants";
 
 export default function InteractiveAvatar() {
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isLoadingRepeat, setIsLoadingRepeat] = useState(false);
-  const [stream, setStream] = useState<MediaStream>();
-  const [debug, setDebug] = useState<string>();
-  const [knowledgeId, setKnowledgeId] = useState<string>("ca8bd42a1c2945418a2f74566f851ea7");
-  const [avatarId, setAvatarId] = useState<string>("Anna_public_3_20240108");
-  const [language, setLanguage] = useState<string>("fr");
-
-  const [data, setData] = useState<StartAvatarResponse>();
   const [text, setText] = useState<string>("");
-  const mediaStream = useRef<HTMLVideoElement>(null);
-  const avatar = useRef<StreamingAvatar | null>(null);
+  const [debug, setDebug] = useState<string>();
+  const [language, setLanguage] = useState<string>("en");
+  const [avatarId, setAvatarId] = useState<string>("");
   const [chatMode, setChatMode] = useState("text_mode");
   const [isUserTalking, setIsUserTalking] = useState(false);
 
-  async function fetchAccessToken() {
+  const previousText = usePrevious(text);
+
+  // Fetch OpenAI API Key
+  async function fetchOpenAIKey() {
     try {
-      const response = await fetch("/api/get-access-token", {
+      const response = await fetch("/api/get-openai-key", {
         method: "POST",
       });
-      const token = await response.text();
-
-      console.log("Access Token:", token); // Log the token to verify
-
-      return token;
+      const apiKey = await response.text();
+      return apiKey;
     } catch (error) {
-      console.error("Error fetching access token:", error);
+      console.error("Error fetching OpenAI API key:", error);
+      return "";
     }
-
-    return "";
   }
 
-  async function startSession() {
-    setIsLoadingSession(true);
-    const newToken = await fetchAccessToken();
+  // Speak using OpenAI's Assistant API
+  async function speakWithOpenAI(inputText: string) {
+    const apiKey = await fetchOpenAIKey();
+    if (!apiKey) {
+      setDebug("OpenAI API key not available");
+      return;
+    }
 
-    avatar.current = new StreamingAvatar({
-      token: newToken,
-    });
-    avatar.current.on(StreamingEvents.AVATAR_START_TALKING, (e) => {
-      console.log("Avatar started talking", e);
-    });
-    avatar.current.on(StreamingEvents.AVATAR_STOP_TALKING, (e) => {
-      console.log("Avatar stopped talking", e);
-    });
-    avatar.current.on(StreamingEvents.STREAM_DISCONNECTED, () => {
-      console.log("Stream disconnected");
-      endSession();
-    });
-    avatar.current?.on(StreamingEvents.STREAM_READY, (event) => {
-      console.log(">>>>> Stream ready:", event.detail);
-      setStream(event.detail);
-    });
-    avatar.current?.on(StreamingEvents.USER_START, (event) => {
-      console.log(">>>>> User started talking:", event);
-      setIsUserTalking(true);
-    });
-    avatar.current?.on(StreamingEvents.USER_STOP, (event) => {
-      console.log(">>>>> User stopped talking:", event);
-      setIsUserTalking(false);
-    });
     try {
-      const res = await avatar.current.createStartAvatar({
-        quality: AvatarQuality.Low,
-        avatarName: avatarId,
-        knowledgeId: knowledgeId, // Or use a custom `knowledgeBase`.
-        voice: {
-          rate: 1.5, // 0.5 ~ 1.5
-          emotion: VoiceEmotion.EXCITED,
+      const response = await fetch("https://api.openai.com/v1/assistants/speak", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
         },
-        language: language,
-        disableIdleTimeout: true,
+        body: JSON.stringify({
+          input: { text: inputText },
+          model: "gpt-4",
+          voice: { language, style: "neutral" },
+        }),
       });
 
-      setData(res);
-      // default to voice mode
-      await avatar.current?.startVoiceChat({
-        useSilencePrompt: false
-      });
-      setChatMode("voice_mode");
+      const data = await response.json();
+      if (data.audioContent) {
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        audio.play();
+      } else {
+        console.error("Failed to fetch speech response:", data);
+      }
     } catch (error) {
-      console.error("Error starting avatar session:", error);
-    } finally {
-      setIsLoadingSession(false);
+      console.error("Error speaking with OpenAI Assistant API:", error);
     }
   }
+
   async function handleSpeak() {
+    if (!text) {
+      setDebug("Text input is empty");
+      return;
+    }
+
     setIsLoadingRepeat(true);
-    if (!avatar.current) {
-      setDebug("Avatar API not initialized");
-
-      return;
-    }
-    // speak({ text: text, task_type: TaskType.REPEAT })
-    await avatar.current.speak({ text: text, taskType: TaskType.REPEAT, taskMode: TaskMode.SYNC }).catch((e) => {
-      setDebug(e.message);
-    });
+    await speakWithOpenAI(text);
     setIsLoadingRepeat(false);
-  }
-  async function handleInterrupt() {
-    if (!avatar.current) {
-      setDebug("Avatar API not initialized");
-
-      return;
-    }
-    await avatar.current
-      .interrupt()
-      .catch((e) => {
-        setDebug(e.message);
-      });
-  }
-  async function endSession() {
-    await avatar.current?.stopAvatar();
-    setStream(undefined);
   }
 
   const handleChangeChatMode = useMemoizedFn(async (v) => {
     if (v === chatMode) {
       return;
     }
-    if (v === "text_mode") {
-      avatar.current?.closeVoiceChat();
-    } else {
-      await avatar.current?.startVoiceChat();
-    }
     setChatMode(v);
   });
 
-  const previousText = usePrevious(text);
   useEffect(() => {
     if (!previousText && text) {
-      avatar.current?.startListening();
+      setIsUserTalking(true);
     } else if (previousText && !text) {
-      avatar?.current?.stopListening();
+      setIsUserTalking(false);
     }
   }, [text, previousText]);
-
-  useEffect(() => {
-    return () => {
-      endSession();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (stream && mediaStream.current) {
-      mediaStream.current.srcObject = stream;
-      mediaStream.current.onloadedmetadata = () => {
-        mediaStream.current!.play();
-        setDebug("Playing");
-      };
-    }
-  }, [mediaStream, stream]);
 
   return (
     <div className="w-full flex flex-col gap-4">
       <Card>
         <CardBody className="h-[500px] flex flex-col justify-center items-center">
-          {stream ? (
-            <div className="h-[500px] w-[900px] justify-center items-center flex rounded-lg overflow-hidden">
-              <video
-                ref={mediaStream}
-                autoPlay
-                playsInline
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                }}
-              >
-                <track kind="captions" />
-              </video>
-              <div className="flex flex-col gap-2 absolute bottom-3 right-3">
-                <Button
-                  className="bg-gradient-to-tr from-indigo-500 to-indigo-300 text-white rounded-lg"
-                  size="md"
-                  variant="shadow"
-                  onClick={handleInterrupt}
-                >
-                  Interrupt task
-                </Button>
-                <Button
-                  className="bg-gradient-to-tr from-indigo-500 to-indigo-300  text-white rounded-lg"
-                  size="md"
-                  variant="shadow"
-                  onClick={endSession}
-                >
-                  End session
-                </Button>
-              </div>
-            </div>
-          ) : !isLoadingSession ? (
+          {!isLoadingSession ? (
             <div className="h-full justify-center items-center flex flex-col gap-8 w-[500px] self-center">
               <div className="flex flex-col gap-2 w-full">
-                <p className="text-sm font-medium leading-none">
-                  Custom Knowledge ID (optional)
-                </p>
-                <Input
-                  placeholder="Enter a custom knowledge ID"
-                  value={knowledgeId}
-                  onChange={(e) => setKnowledgeId(e.target.value)}
-                />
                 <p className="text-sm font-medium leading-none">
                   Custom Avatar ID (optional)
                 </p>
@@ -271,7 +141,6 @@ export default function InteractiveAvatar() {
                 className="bg-gradient-to-tr from-indigo-500 to-indigo-300 w-full text-white"
                 size="md"
                 variant="shadow"
-                onClick={startSession}
               >
                 Start session
               </Button>
@@ -295,7 +164,7 @@ export default function InteractiveAvatar() {
           {chatMode === "text_mode" ? (
             <div className="w-full flex relative">
               <InteractiveAvatarTextInput
-                disabled={!stream}
+                disabled={isLoadingSession}
                 input={text}
                 label="Chat"
                 loading={isLoadingRepeat}
@@ -303,9 +172,7 @@ export default function InteractiveAvatar() {
                 setInput={setText}
                 onSubmit={handleSpeak}
               />
-              {text && (
-                <Chip className="absolute right-16 top-3">Listening</Chip>
-              )}
+              {text && <Chip className="absolute right-16 top-3">Listening</Chip>}
             </div>
           ) : (
             <div className="w-full text-center">
